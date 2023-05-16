@@ -24,7 +24,7 @@ module sd_write (
 
   assign      cmd          = {8'h58, write_address, 1'b1} ;
   assign      receive_done = (miso_data == 16'hFF00) ? 1'b1 : 1'b0 ;
-  assign      write_done   = (miso_data == 16'bxxxx_xxx0_1111_1111) ? 1'b1 : 1'b0 ;
+  assign      write_done   = (miso_data[8:0] == 9'b0_1111_1111) ? 1'b1 : 1'b0 ;
 
   localparam  IDLE         = 3'd0 ;
   localparam  SEND_CMD24   = 3'd1 ;
