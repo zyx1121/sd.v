@@ -1,3 +1,17 @@
+/***************************************************************
+
+  Module Name : sd_read.v
+  Author      : Loki
+  Description : SD card read module
+  Update Log  :
+    * 2023/5/11
+      - initial version
+    * 2023/5/22
+      - refactor sd_write and sd_read module FSM
+      - style update
+
+****************************************************************/
+
 module sd_read (
   input                clk           ,
   input                rst_n         ,
@@ -36,7 +50,8 @@ module sd_read (
     if (!rst_n) begin
       bit_counter  <= 1'b0 ;
       data_counter <= 1'b0 ;
-    end else begin
+    end
+    else begin
       if (state == READ_DATA || state == WAIT_DONE) begin
         bit_counter  <= (bit_counter == 4'd15) ? 1'b0 : bit_counter + 1'b1 ;
         data_counter <= (bit_counter == 4'd15) ? data_counter + 1'b1 : data_counter ;
@@ -50,7 +65,8 @@ module sd_read (
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       state <= IDLE ;
-    end else begin
+    end
+    else begin
       case (state)
 
         IDLE : begin
@@ -92,7 +108,8 @@ module sd_read (
       bit_counter  <= 1'b0 ;
       data_counter <= 1'b0 ;
       wait_counter <= 1'b0 ;
-    end else begin
+    end
+    else begin
       case (state)
 
         // IDLE

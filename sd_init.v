@@ -1,3 +1,16 @@
+/***************************************************************
+
+  Module Name : sd_init.v
+  Author      : Loki
+  Description : SD card initial module
+  Update Log  :
+    * 2023/5/11
+      - initial version
+    * 2023/5/22
+      - style update
+
+****************************************************************/
+
 module sd_init (
   input        clk           ,  // 400 kHz clock
   input        rst_n         ,
@@ -18,33 +31,35 @@ module sd_init (
       receive_flag         <= 1'b0 ;
       receive_data         <= 1'b0 ;
       receive_data_counter <= 1'b0 ;
-    end else begin
+    end
+    else begin
       if (receive_flag == 1'b0 && sd_miso == 1'b0) begin
         receive_done         <= 1'b0 ;
         receive_flag         <= 1'b1 ;
         receive_data         <= {receive_data[46:0], sd_miso} ;
         receive_data_counter <= receive_data_counter + 1'b1 ;
-      end else if (receive_flag) begin
+      end
+      else if (receive_flag) begin
         receive_data         <= {receive_data[46:0], sd_miso} ;
         receive_data_counter <= (receive_data_counter >= 6'd47) ? 1'b0 : receive_data_counter + 1'b1 ;
         receive_flag         <= (receive_data_counter >= 6'd47) ? 1'b0 : 1'b1 ;
         receive_done         <= (receive_data_counter >= 6'd47) ? 1'b1 : 1'b0 ;
-      end else begin
+      end
+      else begin
         receive_done         <= 1'b0 ;
       end
     end
   end
-
 
   reg [2:0] state            ;
   reg [6:0] poweron_counter  ;
   reg [7:0] overtime_counter ;
   reg [5:0] cmd_counter      ;
 
-  localparam CMD0   = {8'h40, 32'h00000000, 8'h95} ;
-  localparam CMD8   = {8'h48, 32'h000001AA, 8'h87} ;
-  localparam CMD55  = {8'h77, 32'h00000000, 8'h65} ;
-  localparam ACMD41 = {8'h69, 32'h40000000, 8'h77} ;
+  localparam CMD0   = { 8'h40, 32'h00000000, 8'h95 } ;
+  localparam CMD8   = { 8'h48, 32'h000001AA, 8'h87 } ;
+  localparam CMD55  = { 8'h77, 32'h00000000, 8'h65 } ;
+  localparam ACMD41 = { 8'h69, 32'h40000000, 8'h77 } ;
 
   localparam IDLE        = 3'd0 ;
   localparam SEND_CMD0   = 3'd1 ;

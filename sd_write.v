@@ -1,3 +1,17 @@
+/***************************************************************
+
+  Module Name : sd_write.v
+  Author      : Loki
+  Description : SD card write module
+  Update Log  :
+    * 2023/5/11
+      - initial version
+    * 2023/5/22
+      - refactor sd_write and sd_read module FSM
+      - style update
+
+****************************************************************/
+
 module sd_write (
   input                clk            ,
   input                rst_n          ,
@@ -22,7 +36,7 @@ module sd_write (
   wire        receive_done    ;
   wire        write_done      ;
 
-  assign      cmd          = {8'h58, write_address, 1'b1} ;
+  assign      cmd          = { 8'h58, write_address, 1'b1 } ;
   assign      receive_done = (miso_data == 16'hFF00) ? 1'b1 : 1'b0 ;
   assign      write_done   = (miso_data[8:0] == 9'b0_1111_1111) ? 1'b1 : 1'b0 ;
 
@@ -36,7 +50,8 @@ module sd_write (
     if (!rst_n) begin
       bit_counter  <= 1'b0 ;
       data_counter <= 1'b0 ;
-    end else begin
+    end
+    else begin
         bit_counter  <= (state == SEND_START || state == SEND_DATA) ?
                         (bit_counter == 4'd15) ? 1'b0 : bit_counter + 1'b1 :
                         1'b0;
@@ -49,7 +64,8 @@ module sd_write (
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       state <= IDLE ;
-    end else begin
+    end
+    else begin
       case (state)
 
         IDLE : begin
@@ -90,7 +106,8 @@ module sd_write (
       cmd_counter     <= 1'b0 ;
       bit_counter     <= 1'b0 ;
       data_counter    <= 1'b0 ;
-    end else begin
+    end
+    else begin
       case (state)
 
         // IDLE
