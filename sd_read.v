@@ -15,7 +15,7 @@ module sd_read (
   reg  [2:0]  state        ;
   reg  [5:0]  cmd_counter  ;
   reg  [3:0]  bit_counter  ;
-  reg  [7:0]  data_counter ;
+  reg  [8:0]  data_counter ;
   reg  [23:0] wait_counter ;
 
   wire [40:0] cmd;
@@ -34,7 +34,55 @@ module sd_read (
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      state        <= IDLE ;
+      bit_counter  <= 1'b0 ;
+      data_counter <= 1'b0 ;
+    end else begin
+      if (state == READ_DATA || state == WAIT_DONE) begin
+        bit_counter  <= (bit_counter == 4'd15) ? 1'b0 : bit_counter + 1'b1 ;
+        data_counter <= (bit_counter == 4'd15) ? data_counter + 1'b1 : data_counter ;
+      end else begin
+        bit_counter  <= 1'b0 ;
+        data_counter <= 1'b0 ;
+      end
+    end
+  end
+
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state <= IDLE ;
+    end else begin
+      case (state)
+
+        IDLE : begin
+          state <= (read_ready) ? SEND_CMD17 : state ;
+        end
+
+        SEND_CMD17 : begin
+          state <= (receive_done) ? WAIT_READ : state ;
+        end
+
+        WAIT_READ : begin
+          state <= (head_done) ? READ_DATA : state ;
+        end
+
+        READ_DATA : begin
+          state <= (bit_counter == 4'd15 && data_counter == 9'd255) ? WAIT_DONE : READ_DATA ;
+        end
+
+        WAIT_DONE : begin
+          state <= (bit_counter == 4'd15 && data_counter == 9'd257) ? IDLE : state ;
+        end
+
+        default : begin
+          state <= IDLE ;
+        end
+
+      endcase
+    end
+  end
+
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       sd_cs        <= 1'b1 ;
       sd_mosi      <= 1'b1 ;
       read_busy    <= 1'b0 ;
@@ -49,43 +97,37 @@ module sd_read (
 
         // IDLE
         IDLE : begin
-          state        <= (read_ready) ? SEND_CMD17 : state ;
-          sd_cs        <= (read_ready) ? 1'b0 : 1'b1 ;
-          sd_mosi      <= (read_ready) ? 1'b0 : 1'b1 ;
-          read_busy    <= (read_ready) ? 1'b1 : 1'b0 ;
-          read_data    <= 1'b0;
-          read_request <= 1'b0;
-          cmd_counter  <= 1'b1;
-          bit_counter  <= 1'b0;
-          data_counter <= 1'b0;
-          wait_counter <= 1'b0;
+          sd_cs        <= 1'b1 ;
+          sd_mosi      <= 1'b1 ;
+          read_busy    <= 1'b0 ;
+          read_data    <= 1'b0 ;
+          read_request <= 1'b0 ;
+          cmd_counter  <= 1'b1 ;
+          bit_counter  <= 1'b0 ;
+          data_counter <= 1'b0 ;
+          wait_counter <= 1'b0 ;
         end
 
         // SEND_CMD17
         SEND_CMD17 : begin
-          state        <= (receive_done) ? WAIT_READ : state ;
+          sd_cs        <= 1'b0 ;
           sd_mosi      <= (receive_done) ? 1'b1 : cmd[6'd40 - cmd_counter] ;
+          read_busy    <= 1'b1 ;
           cmd_counter  <= (cmd_counter == 6'd40) ? cmd_counter : cmd_counter + 1'b1 ;
         end
 
         // WAIT_READ
         WAIT_READ : begin
-          state        <= (head_done) ? READ_DATA : state ;
         end
 
         // READ_DATA
         READ_DATA : begin
-          state        <= (bit_counter  == 4'd15 && data_counter == 8'd255) ? WAIT_DONE : READ_DATA ;
           read_request <= (bit_counter  == 4'd15) ? 1'b1 : 1'b0 ;
           read_data    <= (bit_counter  == 4'd15) ? miso_data : read_data ;
-          bit_counter  <= (bit_counter  == 4'd15) ? 1'b0 : bit_counter + 1'b1 ;
-          data_counter <= (bit_counter  == 4'd15) ? data_counter + 1'b1 : data_counter ;
         end
 
         // WAIT_DONE
         WAIT_DONE : begin
-          state        <= (wait_counter == 6'd23) ? IDLE : state ;
-          wait_counter <= wait_counter + 1'b1 ;
         end
 
         // default
